@@ -1,6 +1,7 @@
 import { EditorView, keymap, lineNumbers, highlightActiveLine, ViewPlugin, Decoration, type DecorationSet, type ViewUpdate } from '@codemirror/view'
 import { EditorState, Compartment, RangeSetBuilder } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
+import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language'
 import { autocompletion, completionKeymap, type CompletionSource } from '@codemirror/autocomplete'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { mdxComponentHighlight } from './language'
@@ -135,6 +136,7 @@ export function createEditor(
     mdxComponentHighlight,
     mdxLinter(manifest, onHasErrors),
     markdown(),
+    syntaxHighlighting(defaultHighlightStyle),
     keymap.of([...defaultKeymap, ...historyKeymap, ...completionKeymap]),
     directusTheme,
     EditorView.updateListener.of((update) => {
