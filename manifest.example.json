@@ -1,0 +1,36 @@
+{
+  "frontmatter": [
+    { "name": "title",  "type": "string",  "required": true,  "description": "Page or article title" },
+    { "name": "date",   "type": "string",  "required": true,  "description": "Publication date (YYYY-MM-DD)" },
+    { "name": "draft",  "type": "boolean", "required": false, "description": "Exclude from production builds when true" },
+    { "name": "tags",   "type": "string[]","required": false, "description": "List of topic tags" },
+    { "name": "author", "type": "string",  "required": false, "description": "Author name or identifier" }
+  ],
+  "components": [
+    {
+      "name": "InfoBox",
+      "description": "Highlighted callout block",
+      "props": [
+        { "name": "title", "type": "string",                            "required": true,  "description": "Heading shown above the box" },
+        { "name": "type",  "type": "\"info\" | \"warning\" | \"danger\"", "required": false, "description": "Controls colour scheme" }
+      ]
+    },
+    {
+      "name": "GalleryIslandWrapper",
+      "description": "Responsive image gallery",
+      "props": [
+        { "name": "width",   "type": "\"prose\" | \"max\"", "required": false, "description": "Layout width constraint" },
+        { "name": "columns", "type": "number",              "required": false, "description": "Number of columns (default 3)" }
+      ]
+    },
+    {
+      "name": "CallToAction",
+      "description": "Prominent CTA button block",
+      "props": [
+        { "name": "href",    "type": "string",                                   "required": true,  "description": "Destination URL" },
+        { "name": "label",   "type": "string",                                   "required": true,  "description": "Button label" },
+        { "name": "variant", "type": "\"primary\" | \"secondary\" | \"ghost\"", "required": false }
+      ]
+    }
+  ]
+}

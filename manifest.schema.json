@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MDX Body Editor — Component Manifest",
+  "description": "Defines JSX component and YAML frontmatter field definitions for the directus-extension-mdx-body-editor. Host this file at a URL your Directus instance can fetch and paste the URL into the field options.",
+  "oneOf": [
+    { "$ref": "#/definitions/ManifestObject" },
+    { "$ref": "#/definitions/LegacyComponentArray" }
+  ],
+  "definitions": {
+    "ManifestObject": {
+      "type": "object",
+      "description": "Preferred format. Supports both component and frontmatter validation.",
+      "properties": {
+        "components": {
+          "type": "array",
+          "description": "JSX component definitions. Drives autocomplete, unknown-component warnings, and prop validation.",
+          "items": { "$ref": "#/definitions/ComponentEntry" },
+          "default": []
+        },
+        "frontmatter": {
+          "type": "array",
+          "description": "YAML frontmatter field definitions. Drives unknown-field warnings, required-field checks, and enum validation.",
+          "items": { "$ref": "#/definitions/FrontmatterField" },
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    },
+    "LegacyComponentArray": {
+      "type": "array",
+      "description": "Legacy format: array of component entries with no frontmatter validation. Equivalent to { components: [...], frontmatter: [] }.",
+      "items": { "$ref": "#/definitions/ComponentEntry" }
+    },
+    "ComponentEntry": {
+      "type": "object",
+      "description": "A single JSX component available in the MDX body.",
+      "required": ["name", "props"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Component name as used in JSX. Must start with an uppercase letter.",
+          "pattern": "^[A-Z][A-Za-z0-9.]*$",
+          "examples": ["InfoBox", "CallToAction", "Tabs.Panel"]
+        },
+        "description": {
+          "type": "string",
+          "description": "Short description shown in the autocomplete tooltip."
+        },
+        "props": {
+          "type": "array",
+          "description": "Prop definitions for this component.",
+          "items": { "$ref": "#/definitions/PropEntry" }
+        }
+      }
+    },
+    "PropEntry": {
+      "type": "object",
+      "description": "A single JSX prop on a component.",
+      "required": ["name", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Prop name as written in JSX.",
+          "examples": ["title", "href", "variant"]
+        },
+        "type": {
+          "type": "string",
+          "description": "Type annotation. Use a union of quoted string literals for enum validation and autocomplete (e.g. '\"info\" | \"warning\"'). Use 'string', 'number', or 'boolean' for scalar types (no value suggestions).",
+          "examples": ["string", "number", "boolean", "\"info\" | \"warning\" | \"danger\"", "\"prose\" | \"max\""]
+        },
+        "required": {
+          "type": "boolean",
+          "description": "If true, the linter warns when the prop is absent on an opening tag.",
+          "default": false
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description shown in the autocomplete detail panel."
+        }
+      }
+    },
+    "FrontmatterField": {
+      "type": "object",
+      "description": "A single YAML field expected in the frontmatter block.",
+      "required": ["name", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Field key as it appears in the YAML frontmatter.",
+          "examples": ["title", "date", "draft", "tags"]
+        },
+        "type": {
+          "type": "string",
+          "description": "Type annotation. 'string', 'number', 'boolean', 'string[]' perform presence-only checks. A union of quoted string literals (e.g. '\"draft\" | \"published\"') also validates the scalar value.",
+          "examples": ["string", "boolean", "number", "string[]", "\"draft\" | \"published\" | \"archived\""]
+        },
+        "required": {
+          "type": "boolean",
+          "description": "If true, the linter warns when the field is absent from the frontmatter block.",
+          "default": false
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description (not currently shown in the editor UI, included for documentation purposes)."
+        }
+      }
+    }
+  }
+}

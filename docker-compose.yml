@@ -1,0 +1,26 @@
+services:
+  directus:
+    image: directus/directus:latest
+    ports:
+      - "8055:8055"
+    volumes:
+      - directus_uploads:/directus/uploads
+      - directus_database:/directus/database
+      # Mount only the built extension and its manifest so the container stays clean
+      - ./package.json:/directus/extensions/mdx-body-editor/package.json:ro
+      - ./dist:/directus/extensions/mdx-body-editor/dist
+    environment:
+      SECRET: ${SECRET:-change-me-in-production}
+      DB_CLIENT: sqlite3
+      DB_FILENAME: /directus/database/data.db
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      EXTENSIONS_AUTO_RELOAD: "true"
+      EXTENSIONS_CACHE_TTL: "1s"
+      # Allow the local manifest server (HTTP) to be fetched from the browser.
+      # Directus's default CSP only permits https://* for connect-src.
+      CONTENT_SECURITY_POLICY_DIRECTIVES__CONNECT_SRC: "'self' https://* wss://* http://localhost:*"
+
+volumes:
+  directus_uploads:
+  directus_database:

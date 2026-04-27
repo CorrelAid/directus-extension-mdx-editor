@@ -1,0 +1,41 @@
+{
+  "name": "directus-extension-mdx-body-editor",
+  "version": "0.1.0",
+  "keywords": [
+    "directus",
+    "directus-extension",
+    "directus-custom-interface"
+  ],
+  "directus:extension": {
+    "type": "interface",
+    "path": "dist/index.js",
+    "source": "src/index.ts",
+    "host": "^10.0.0 || ^11.0.0"
+  },
+  "scripts": {
+    "build": "directus-extension build",
+    "dev": "directus-extension build -w",
+    "preview": "node scripts/preview.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@directus/extensions-sdk": "^11.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^4.1.5",
+    "vue": "^3.3.0"
+  },
+  "peerDependencies": {
+    "vue": "^3.3.0"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.0.0",
+    "@codemirror/commands": "^6.0.0",
+    "@codemirror/lang-markdown": "^6.0.0",
+    "@codemirror/language": "^6.0.0",
+    "@codemirror/lint": "^6.9.5",
+    "@codemirror/state": "^6.0.0",
+    "@codemirror/view": "^6.0.0",
+    "@mdx-js/mdx": "^3.1.1"
+  }
+}
