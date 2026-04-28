@@ -378,7 +378,7 @@ export function findInvalidProps(content: string, manifest: ComponentEntry[]): P
         results.push({
           componentName,
           propName,
-          severity: 'warning',
+          severity: 'error',
           message: `Unknown prop "${propName}" on <${componentName}>. Valid props: ${validPropList}.`,
           line: lineNum,
           col,
@@ -476,7 +476,7 @@ export function findInvalidFrontmatter(raw: string, fields: FrontmatterField[]):
     if (!knownFields.has(key)) {
       results.push({
         field: key,
-        severity: 'warning' as const,
+        severity: 'error' as const,
         message: `Unknown frontmatter field "${key}". Valid fields: ${validFieldList}.`,
         line,
         col: 0,
