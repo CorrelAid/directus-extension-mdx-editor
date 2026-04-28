@@ -574,7 +574,7 @@ export function mdxLinter(
         diagnostics.push({
           from,
           to,
-          severity: 'warning',
+          severity: 'error',
           message: `Unknown component "${usage.name}" — not found in the component manifest.`,
         })
       }
