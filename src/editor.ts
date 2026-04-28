@@ -18,6 +18,12 @@ const mdxHighlightStyle = syntaxHighlighting(HighlightStyle.define([
   { tag: tags.strikethrough, textDecoration: 'line-through' },
   { tag: tags.heading, fontWeight: 'bold' },
   { tag: tags.monospace, fontFamily: 'inherit' },
+  // HTML elements parsed by @lezer/markdown — subdued so they don't compete
+  // with MDX component names styled by the MatchDecorator in language.ts.
+  { tag: tags.tagName, color: 'var(--theme--foreground-subdued)', fontStyle: 'italic' },
+  { tag: tags.angleBracket, color: 'var(--theme--foreground-subdued)' },
+  { tag: tags.attributeName, color: 'var(--theme--foreground-subdued)' },
+  { tag: tags.attributeValue, color: 'var(--theme--foreground-subdued)' },
 ]))
 
 export interface EditorController {
@@ -146,6 +152,7 @@ export function createEditor(
     readOnlyCompartment.of(EditorState.readOnly.of(disabled)),
     frontmatterHighlight,
     mdxComponentHighlight,
+
     mdxLinter(manifest, onHasErrors),
     markdown(),
     mdxHighlightStyle,

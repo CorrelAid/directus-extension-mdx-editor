@@ -25,6 +25,7 @@ export interface PropError {
   componentName: string
   propName: string
   message: string
+  severity: 'warning' | 'error'
   /** 1-based line number */
   line: number
   /** 0-based column of the opening < */
@@ -103,6 +104,88 @@ export function findUnknownComponents(content: string, known: Set<string>): Comp
       const name = match[1]!
       if (known.has(name)) continue
       results.push({ name, line: i + 1, col: match.index + 1 }) // col points at <
+    }
+  }
+
+  return results
+}
+
+// ---------------------------------------------------------------------------
+// HTML element validation
+// ---------------------------------------------------------------------------
+
+const KNOWN_HTML_ELEMENTS = new Set([
+  // Document structure
+  'html','head','body',
+  // Metadata
+  'title','base','link','meta','style',
+  // Sections
+  'address','article','aside','footer','header','h1','h2','h3','h4','h5','h6',
+  'hgroup','main','nav','section','search',
+  // Content grouping
+  'blockquote','dd','div','dl','dt','figcaption','figure','hr','li','menu',
+  'ol','p','pre','ul',
+  // Inline text
+  'a','abbr','b','bdi','bdo','br','cite','code','data','dfn','em','i','kbd',
+  'mark','q','rp','rt','ruby','s','samp','small','span','strong','sub','sup',
+  'time','u','var','wbr',
+  // Media & embedded
+  'area','audio','img','map','track','video','canvas','embed','fencedframe',
+  'iframe','object','picture','portal','source','svg','math',
+  // Scripting
+  'noscript','script','del','ins',
+  // Table
+  'caption','col','colgroup','table','tbody','td','tfoot','th','thead','tr',
+  // Forms
+  'button','datalist','fieldset','form','input','label','legend','meter',
+  'optgroup','option','output','progress','select','textarea',
+  // Interactive
+  'details','dialog','summary',
+  // Web components
+  'slot','template',
+  // Common SVG children (used inline in MDX)
+  'circle','clippath','defs','desc','ellipse','feblend','fecolormatrix',
+  'fecomponenttransfer','fecomposite','feconvolvematrix','fediffuselighting',
+  'fedisplacementmap','fedistantlight','fedropshadow','feflood','fefunca',
+  'fefuncb','fefuncg','fefuncr','fegaussianblur','feimage','femerge',
+  'femergenode','femorphology','feoffset','fepointlight','fespecularlighting',
+  'fespotlight','fetile','feturbulence','filter','foreignobject','g','image',
+  'line','lineargradient','marker','mask','metadata','mpath','path','pattern',
+  'polygon','polyline','radialgradient','rect','stop','switch','symbol','text',
+  'textpath','tspan','use','view',
+])
+
+export interface HtmlElementError {
+  name: string
+  line: number
+  col: number
+}
+
+/**
+ * Scan content for opening HTML element tags whose names are not recognised
+ * HTML elements (and are not hyphenated custom elements or SVG elements).
+ * Only flags opening tags; closing tags are skipped.
+ */
+export function findUnknownHtmlElements(content: string): HtmlElementError[] {
+  const results: HtmlElementError[] = []
+  const lines = content.split('\n')
+  let inFence = false
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!
+
+    if (/^(`{3,}|~{3,})/.test(line.trim())) { inFence = !inFence; continue }
+    if (inFence) continue
+    if (line.startsWith('    ') || line.startsWith('\t')) continue
+
+    const tagRegex = /<([a-z][a-zA-Z0-9]*)/g
+    let match: RegExpExecArray | null
+    while ((match = tagRegex.exec(line)) !== null) {
+      const name = match[1]!
+      if (KNOWN_HTML_ELEMENTS.has(name)) continue
+      // Hyphenated names are valid custom elements — skip them.
+      if (name.includes('-')) continue
+      results.push({ name, line: i + 1, col: match.index })
     }
   }
 
@@ -295,7 +378,7 @@ export function findInvalidProps(content: string, manifest: ComponentEntry[]): P
         results.push({
           componentName,
           propName,
-
+          severity: 'warning',
           message: `Unknown prop "${propName}" on <${componentName}>. Valid props: ${validPropList}.`,
           line: lineNum,
           col,
@@ -310,7 +393,7 @@ export function findInvalidProps(content: string, manifest: ComponentEntry[]): P
         results.push({
           componentName,
           propName: prop.name,
-
+          severity: 'error',
           message: `Required prop "${prop.name}" is missing on <${componentName}>. Required: ${requiredList}.`,
           line: lineNum,
           col,
@@ -328,7 +411,7 @@ export function findInvalidProps(content: string, manifest: ComponentEntry[]): P
         results.push({
           componentName,
           propName: prop.name,
-
+          severity: 'error',
           message: `Invalid value "${value}" for prop "${prop.name}" on <${componentName}>. Expected one of: ${allowed.map((v) => `"${v}"`).join(' | ')}.`,
           line: lineNum,
           col,
@@ -347,6 +430,7 @@ export function findInvalidProps(content: string, manifest: ComponentEntry[]): P
 export interface FrontmatterError {
   field: string
   message: string
+  severity: 'warning' | 'error'
   /** 1-based absolute line number in the full document */
   line: number
   /** 0-based start column */
@@ -469,7 +553,7 @@ export function mdxLinter(
         const docLine = view.state.doc.line(Math.min(err.line, lineCount))
         const from = Math.min(docLine.from + err.col, docLine.to)
         const to = Math.min(from + err.length, docLine.to)
-        diagnostics.push({ from, to, severity: 'error', message: err.message })
+        diagnostics.push({ from, to, severity: err.severity, message: err.message })
       }
 
       // Pass 1 — MDX syntax errors via @mdx-js/mdx
@@ -490,7 +574,7 @@ export function mdxLinter(
         diagnostics.push({
           from,
           to,
-          severity: 'error',
+          severity: 'warning',
           message: `Unknown component "${usage.name}" — not found in the component manifest.`,
         })
       }
@@ -502,11 +586,28 @@ export function mdxLinter(
         const docLine = view.state.doc.line(Math.min(adjustedLine, lineCount))
         const from = Math.min(docLine.from + err.col, docLine.to)
         const to = Math.min(from + err.componentName.length + 1, docLine.to)
+        // Unknown props are advisory (manifest may be incomplete) → warning only.
+        // Missing required props and invalid enum values block save → error.
         diagnostics.push({
           from,
           to,
-          severity: 'error',
+          severity: err.severity,
           message: err.message,
+        })
+      }
+
+      // Pass 4 — unknown HTML element names (warning; custom elements with hyphens are skipped)
+      for (const err of findUnknownHtmlElements(content)) {
+        const adjustedLine = err.line + lineOffset
+        const lineCount = view.state.doc.lines
+        const docLine = view.state.doc.line(Math.min(adjustedLine, lineCount))
+        const from = Math.min(docLine.from + err.col, docLine.to)
+        const to = Math.min(from + err.name.length + 1, docLine.to)
+        diagnostics.push({
+          from,
+          to,
+          severity: 'warning',
+          message: `Unknown HTML element "<${err.name}>" — possible typo?`,
         })
       }
 

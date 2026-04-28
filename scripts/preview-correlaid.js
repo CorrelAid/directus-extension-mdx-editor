@@ -249,15 +249,28 @@ async function main() {
   const { data: { access_token } } = await api('/auth/login', 'POST', { email: EMAIL, password: PASSWORD })
   console.log('✓ Authenticated')
 
-  // --reset: drop and rebuild the collection
+  // --reset: delete all items so the seed runs fresh.
+  // Schema-level collection deletion is blocked by Directus 11 policies even
+  // for admin-role users via the REST API, so we clear items instead.
   if (process.argv.includes('--reset')) {
-    console.log(`Resetting collection "${COLLECTION}"…`)
+    console.log(`Resetting items in "${COLLECTION}"…`)
     try {
-      await api(`/collections/${COLLECTION}`, 'DELETE', undefined, access_token)
-      console.log(`✓ Deleted "${COLLECTION}"`)
+      const { data: rows } = await api(
+        `/items/${COLLECTION}?fields=id&limit=-1`,
+        'GET', undefined, access_token,
+      )
+      if (rows.length > 0) {
+        await api(`/items/${COLLECTION}`, 'DELETE', rows.map(r => r.id), access_token)
+        console.log(`✓ Deleted ${rows.length} item(s) from "${COLLECTION}"`)
+      } else {
+        console.log(`  "${COLLECTION}" had no items`)
+      }
     } catch (err) {
-      if (err.status !== 404) throw err
-      console.log(`  "${COLLECTION}" did not exist`)
+      if (err.status === 404 || err.code === 'FORBIDDEN') {
+        console.log(`  "${COLLECTION}" did not exist or was not accessible — will create fresh`)
+      } else {
+        throw err
+      }
     }
   }
 
@@ -309,8 +322,9 @@ async function main() {
 
   // 6. Seed items
   const createdIds = []
+  const shouldSeed = collectionCreated !== null || process.argv.includes('--reset')
 
-  if (collectionCreated !== null) {
+  if (shouldSeed) {
     console.log('Seeding sample items…')
     for (const sample of SAMPLES) {
       const { data: item } = await api(`/items/${COLLECTION}`, 'POST', {

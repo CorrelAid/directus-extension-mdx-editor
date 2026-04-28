@@ -1,5 +1,5 @@
 <template>
-  <div ref="container" class="mdx-editor" :class="{ 'mdx-editor--disabled': disabled }">
+  <div class="mdx-editor" :class="{ 'mdx-editor--disabled': disabled }">
     <p v-if="fetchError" class="mdx-editor__banner mdx-editor__banner--warning">
       <span>Could not load component manifest from <code>{{ manifestUrl }}</code>. Autocomplete is unavailable.</span>
       <button class="mdx-editor__retry" @click="retryManifest">Retry</button>
@@ -7,6 +7,8 @@
     <p v-if="hasSyntaxErrors" class="mdx-editor__banner mdx-editor__banner--error">
       Syntax error — fix the highlighted problem before this content can be saved.
     </p>
+
+    <div ref="container" />
   </div>
 </template>
 
@@ -33,7 +35,7 @@ let ctrl: EditorController | null = null
 let suppressNextWatch = false
 
 // ---------------------------------------------------------------------------
-// Editor factory — extracted so retry can rebuild without duplicating args
+// Editor factory
 // ---------------------------------------------------------------------------
 
 function buildEditor(
@@ -47,11 +49,9 @@ function buildEditor(
     completionSource,
     props.disabled ?? false,
     manifest,
-    undefined, // onChange not used; emitting is gated by the linter callback below
+    undefined,
     (hasErrors) => {
       hasSyntaxErrors.value = hasErrors
-      // Only emit to the parent form when there are no syntax errors.
-      // This prevents Directus from saving broken MDX.
       if (!hasErrors && ctrl) {
         suppressNextWatch = true
         emit('input', ctrl.view.state.doc.toString())
@@ -64,7 +64,7 @@ function buildEditor(
 // Manifest fetch
 // ---------------------------------------------------------------------------
 
-async function fetchManifest(): Promise<ComponentEntry[] | null> {
+async function fetchManifest(): Promise<unknown[] | null> {
   if (!props.manifestUrl) return null
   try {
     const res = await fetch(props.manifestUrl)
@@ -78,7 +78,7 @@ async function fetchManifest(): Promise<ComponentEntry[] | null> {
 async function retryManifest() {
   if (!container.value || !ctrl) return
   const fetched = await fetchManifest()
-  if (!fetched) return // server still down — leave error banner visible
+  if (!fetched) return
 
   const currentContent = ctrl.view.state.doc.toString()
   ctrl.view.destroy()
@@ -123,7 +123,6 @@ watch(
   (d) => ctrl?.setReadOnly(d ?? false),
 )
 
-// Keep the editor in sync when Directus sets the field value externally
 watch(
   () => props.value,
   (newVal) => {
@@ -174,6 +173,7 @@ watch(
   pointer-events: none;
 }
 
+/* Banners */
 .mdx-editor__banner {
   margin: 0;
   padding: 8px 12px;
