@@ -1,12 +1,24 @@
 import { EditorView, keymap, lineNumbers, highlightActiveLine, ViewPlugin, Decoration, type DecorationSet, type ViewUpdate } from '@codemirror/view'
 import { EditorState, Compartment, RangeSetBuilder } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
-import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language'
+import { syntaxHighlighting, HighlightStyle } from '@codemirror/language'
+import { tags } from '@lezer/highlight'
 import { autocompletion, completionKeymap, type CompletionSource } from '@codemirror/autocomplete'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { mdxComponentHighlight } from './language'
 import { mdxLinter } from './linter'
 import type { Manifest } from './autocomplete'
+
+// Minimal highlight style: keeps bold/italic/strikethrough/code but omits link
+// underlines and escape-sequence colouring, which cause visual noise in MDX
+// content that mixes JS export blocks with embedded markdown strings.
+const mdxHighlightStyle = syntaxHighlighting(HighlightStyle.define([
+  { tag: tags.strong, fontWeight: 'bold' },
+  { tag: tags.emphasis, fontStyle: 'italic' },
+  { tag: tags.strikethrough, textDecoration: 'line-through' },
+  { tag: tags.heading, fontWeight: 'bold' },
+  { tag: tags.monospace, fontFamily: 'inherit' },
+]))
 
 export interface EditorController {
   view: EditorView
@@ -136,7 +148,7 @@ export function createEditor(
     mdxComponentHighlight,
     mdxLinter(manifest, onHasErrors),
     markdown(),
-    syntaxHighlighting(defaultHighlightStyle),
+    mdxHighlightStyle,
     keymap.of([...defaultKeymap, ...historyKeymap, ...completionKeymap]),
     directusTheme,
     EditorView.updateListener.of((update) => {

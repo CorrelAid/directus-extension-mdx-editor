@@ -1,8 +1,7 @@
 <template>
   <div ref="container" class="mdx-editor" :class="{ 'mdx-editor--disabled': disabled }">
     <p v-if="fetchError" class="mdx-editor__banner mdx-editor__banner--warning">
-      Could not load component manifest from <code>{{ manifestUrl }}</code>. Autocomplete is
-      unavailable.
+      <span>Could not load component manifest from <code>{{ manifestUrl }}</code>. Autocomplete is unavailable.</span>
       <button class="mdx-editor__retry" @click="retryManifest">Retry</button>
     </p>
     <p v-if="hasSyntaxErrors" class="mdx-editor__banner mdx-editor__banner--error">
