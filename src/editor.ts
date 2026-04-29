@@ -114,6 +114,17 @@ const directusTheme = EditorView.theme({
   '.cm-frontmatter-line': {
     backgroundColor: 'color-mix(in srgb, var(--theme--primary) 6%, transparent)',
   },
+  // Lint tooltips
+  '.cm-tooltip.cm-lintTooltip': {
+    backgroundColor: 'var(--theme--background)',
+    color: 'var(--theme--foreground)',
+    border: '1px solid var(--theme--danger)',
+    borderRadius: 'var(--theme--border-radius)',
+    padding: '8px',
+  },
+  '.cm-tooltip.cm-lintTooltip .cm-lintMessage': {
+    color: 'var(--theme--danger)',
+  },
   // MDX component tokens (applied by the MatchDecorator in language.ts)
   '.cm-mdx-bracket': {
     color: 'var(--theme--foreground-subdued)',
