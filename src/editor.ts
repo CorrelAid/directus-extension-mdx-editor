@@ -7,12 +7,16 @@ import { autocompletion, completionKeymap, type CompletionSource } from '@codemi
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { mdxComponentHighlight } from './language'
 import { mdxLinter } from './linter'
+import { formatMdx } from './format'
 import type { Manifest } from './autocomplete'
 
 // Minimal highlight style: keeps bold/italic/strikethrough/code but omits link
 // underlines and escape-sequence colouring, which cause visual noise in MDX
 // content that mixes JS export blocks with embedded markdown strings.
-const mdxHighlightStyle = syntaxHighlighting(HighlightStyle.define([
+// Exported so unit tests can assert the contract that tagName has no color
+// (re-introducing one would override the MatchDecorator's component coloring
+// via the inner leaf span lezer wraps around the text node).
+export const mdxHighlightSpec = [
   { tag: tags.strong, fontWeight: 'bold' },
   { tag: tags.emphasis, fontStyle: 'italic' },
   { tag: tags.strikethrough, textDecoration: 'line-through' },
@@ -20,11 +24,15 @@ const mdxHighlightStyle = syntaxHighlighting(HighlightStyle.define([
   { tag: tags.monospace, fontFamily: 'inherit' },
   // HTML elements parsed by @lezer/markdown — subdued so they don't compete
   // with MDX component names styled by the MatchDecorator in language.ts.
-  { tag: tags.tagName, color: 'var(--theme--foreground-subdued)', fontStyle: 'italic' },
+  // tagName intentionally has no color: lezer wraps the inner text node in
+  // its own leaf span, which would override the cm-mdx-component decoration
+  // applied to the outer span. Plain HTML tags (`<br>`) inherit the default
+  // foreground; component names get coloured by the MatchDecorator.
   { tag: tags.angleBracket, color: 'var(--theme--foreground-subdued)' },
   { tag: tags.attributeName, color: 'var(--theme--foreground-subdued)' },
   { tag: tags.attributeValue, color: 'var(--theme--foreground-subdued)' },
-]))
+]
+const mdxHighlightStyle = syntaxHighlighting(HighlightStyle.define(mdxHighlightSpec))
 
 export interface EditorController {
   view: EditorView
@@ -67,7 +75,7 @@ function buildFrontmatterDecorations(view: EditorView): DecorationSet {
 }
 
 // Maps to Directus CSS custom properties so the editor adapts to light/dark theme automatically
-const directusTheme = EditorView.theme({
+export const directusThemeSpec: Parameters<typeof EditorView.theme>[0] = {
   '&': {
     color: 'var(--theme--foreground)',
     backgroundColor: 'var(--theme--form--field--input--background)',
@@ -129,9 +137,10 @@ const directusTheme = EditorView.theme({
   '.cm-mdx-bracket': {
     color: 'var(--theme--foreground-subdued)',
   },
-  '.cm-mdx-component': {
-    color: 'var(--theme--primary)',
-    fontWeight: '600',
+  '.cm-line .cm-mdx-component, .cm-mdx-component': {
+    color: 'var(--theme--primary) !important',
+    fontWeight: '600 !important',
+    fontStyle: 'normal !important',
   },
   // Linter squiggles
   '.cm-lintRange-error': {
@@ -142,7 +151,9 @@ const directusTheme = EditorView.theme({
     backgroundImage: 'none',
     borderBottom: '2px solid var(--theme--warning)',
   },
-})
+}
+
+const directusTheme = EditorView.theme(directusThemeSpec)
 
 export function createEditor(
   parent: HTMLElement,
@@ -167,7 +178,27 @@ export function createEditor(
     mdxLinter(manifest, onHasErrors),
     markdown(),
     mdxHighlightStyle,
-    keymap.of([...defaultKeymap, ...historyKeymap, ...completionKeymap]),
+    keymap.of([
+      {
+        key: 'Mod-s',
+        preventDefault: true,
+        run: (v) => {
+          void formatMdx(v)
+          return true
+        },
+      },
+      {
+        key: 'Mod-Shift-f',
+        preventDefault: true,
+        run: (v) => {
+          void formatMdx(v)
+          return true
+        },
+      },
+      ...defaultKeymap,
+      ...historyKeymap,
+      ...completionKeymap,
+    ]),
     directusTheme,
     EditorView.updateListener.of((update) => {
       if (update.docChanged && onChange) {

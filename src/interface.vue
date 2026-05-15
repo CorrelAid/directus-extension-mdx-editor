@@ -16,6 +16,7 @@
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { createEditor, type EditorController } from './editor'
 import { buildCompletionSource, parseManifest, type Manifest } from './autocomplete'
+import { decideOnDocChange, decideOnLintResult, type EmitState } from './emit-policy'
 
 const props = defineProps<{
   value: string | null
@@ -33,6 +34,7 @@ const hasSyntaxErrors = ref(false)
 
 let ctrl: EditorController | null = null
 let suppressNextWatch = false
+let emitState: EmitState = { lastEmitted: '', hasSyntaxErrors: false }
 
 // ---------------------------------------------------------------------------
 // Editor factory
@@ -43,19 +45,31 @@ function buildEditor(
   manifest: Manifest,
   completionSource: ReturnType<typeof buildCompletionSource> | undefined,
 ) {
+  emitState = { lastEmitted: initialContent, hasSyntaxErrors: false }
   return createEditor(
     container.value!,
     initialContent,
     completionSource,
     props.disabled ?? false,
     manifest,
-    undefined,
+    (newValue) => {
+      const decision = decideOnDocChange(emitState, newValue)
+      if (decision.kind === 'skip') return
+      emitState = decision.nextState
+      suppressNextWatch = true
+      emit('input', decision.value)
+    },
     (hasErrors) => {
       hasSyntaxErrors.value = hasErrors
-      if (!hasErrors && ctrl) {
-        suppressNextWatch = true
-        emit('input', ctrl.view.state.doc.toString())
+      const currentDoc = ctrl ? ctrl.view.state.doc.toString() : emitState.lastEmitted
+      const decision = decideOnLintResult(emitState, hasErrors, currentDoc)
+      if (decision.kind === 'skip') {
+        emitState = { ...emitState, hasSyntaxErrors: hasErrors }
+        return
       }
+      emitState = decision.nextState
+      suppressNextWatch = true
+      emit('input', decision.value)
     },
   )
 }
@@ -134,6 +148,7 @@ watch(
     const current = ctrl.view.state.doc.toString()
     const incoming = newVal ?? ''
     if (incoming !== current) {
+      emitState = { ...emitState, lastEmitted: incoming }
       ctrl.view.dispatch({
         changes: { from: 0, to: ctrl.view.state.doc.length, insert: incoming },
       })

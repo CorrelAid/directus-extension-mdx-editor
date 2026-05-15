@@ -63,7 +63,34 @@ npm test             # single run
 npm run test:watch   # re-run on save
 ```
 
-Tests cover the pure linter logic: `stripFrontmatter`, `compileMdxContent` (via `@mdx-js/mdx`), and `findUnknownComponents`. No browser required.
+Test files live in `src/__tests__/`:
+
+| File | Scope |
+|------|-------|
+| `linter.test.ts` | Pure linter logic — `stripFrontmatter`, `compileMdxContent`, `findUnknownComponents`, `findInvalidProps`, `findInvalidFrontmatter` |
+| `highlight.test.ts` | MDX-component regex matches single/multi-line `<Component>`, dotted names, ignores lowercase HTML |
+| `emit-policy.test.ts` | Pure decisions that govern when the Vue interface emits `input` — guards the prod content-wipe regression |
+| `format.test.ts` | `formatMdxString` JSX fidelity (LinkButton attrs, array-prop expressions, frontmatter, `<br/>`, idempotent round-trip) |
+| `dom-highlight.test.ts` | jsdom — real DOM spans for component decoration; `tagName` must not carry a `color` (leaf-span override regression) |
+| `dom-keymap.test.ts` | jsdom — `Mod-s` / `Mod-Shift-F` wired to `formatMdx`, only fires when editor has focus |
+
+### Pre-commit hook
+
+`simple-git-hooks` is installed via `npm install` (via the `prepare` script) and runs `npm test` before every commit. To bypass for an emergency commit:
+
+```bash
+SKIP_SIMPLE_GIT_HOOKS=1 git commit -m "…"
+```
+
+If hooks were not set up automatically, run once:
+
+```bash
+npx simple-git-hooks
+```
+
+### Formatting (Ctrl+S / Cmd+S)
+
+The editor binds `Mod-s` and `Mod-Shift-F` to a remark-based MDX formatter (`src/format.ts`). The format pipeline is `remark-parse` → `remark-frontmatter` → `remark-mdx` → `remark-stringify`, loaded lazily on first invocation so the initial bundle stays slim. Read-only fields and parse failures are silent no-ops.
 
 ### Sample items
 

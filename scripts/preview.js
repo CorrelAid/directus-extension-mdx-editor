@@ -168,6 +168,38 @@ We partner with non-profit organisations to turn data into impact.
 Ready to contribute your data skills?
 
 <CallToAction href="https://correlaid.org/join" label="Join the Network" variant="primary" />
+
+## Raw HTML mixed with markdown
+
+Sometimes you need an escape hatch — drop in raw HTML directly.
+
+<details>
+  <summary>Click to expand a long explanation</summary>
+  <p>
+    This block is rendered as <strong>plain HTML</strong>.
+    It supports <em>inline</em> tags, <a href="https://correlaid.org">links</a>,
+    and even tables:
+  </p>
+  <table>
+    <thead>
+      <tr><th>Year</th><th>Projects</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>2023</td><td>12</td></tr>
+      <tr><td>2024</td><td>18</td></tr>
+    </tbody>
+  </table>
+</details>
+
+A line break here →<br/>← was forced with an HTML \`<br/>\`.
+
+> Block quotes still work alongside HTML.
+
+<hr />
+
+<aside style="border-left: 4px solid #888; padding-left: 12px;">
+  Inline-styled <code>&lt;aside&gt;</code> with attributes the linter should ignore.
+</aside>
 `,
   },
   {
